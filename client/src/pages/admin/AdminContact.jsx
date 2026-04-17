@@ -1,125 +1,85 @@
-import { useEffect, useState } from "react";
-import api from "../../services/api";
+import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { Mail, Inbox } from 'lucide-react';
+import api from '../../services/api';
 
-const AdminContact = () => {
-    const [contacts, setContacts] = useState([]);
-    const [loading, setLoading] = useState(true);
+export default function AdminContact() {
+  const [contacts, setContacts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState(null);
 
-    const fetchContacts = async () => {
-        try {
-            const res = await api.get("contact/get");
-            setContacts(res.data.contact);
-        } catch (error) {
-            console.error(error.response?.data || error.message);
-        } finally {
-            setLoading(false);
-        }
-    };
+  useEffect(() => {
+    api.get('/contact').then(({ data }) => { setContacts(data.data || data || []); setLoading(false); }).catch(() => setLoading(false));
+  }, []);
 
-    useEffect(() => {
-        fetchContacts();
-    }, []);
+  return (
+    <div className="p-6 lg:p-8">
+      <div className="mb-6">
+        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.75rem', fontWeight: 800, color: 'var(--text)', letterSpacing: '-.02em' }}>Messages</h1>
+        <p style={{ color: 'var(--text-3)', fontSize: '.85rem' }}>{contacts.length} messages</p>
+      </div>
 
-    const handleDelete = async (id) => {
-        if (!window.confirm("Are you sure you want to delete this message?"))
-            return;
-
-        try {
-            await api.delete(`contact/delete/${id}`);
-            setContacts((prev) =>
-                prev.filter((contact) => contact._id !== id)
-            );
-        } catch (error) {
-            console.error(error.response?.data || error.message);
-        }
-    };
-
-    if (loading)
-        return <p className="text-center mt-10 text-lg">Loading Contacts...</p>;
-
-    return (
-        <div className="min-h-screen bg-gray-100 p-8">
-            <div className="max-w-7xl mx-auto bg-white shadow-xl rounded-2xl p-6">
-                <h1 className="text-3xl font-bold mb-6">
-                    Admin - Contact Messages
-                </h1>
-
-                {contacts.length === 0 ? (
-                    <p className="text-gray-500">No Messages Found</p>
-                ) : (
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full border border-gray-200 rounded-lg">
-                            <thead className="bg-gray-800 text-white">
-                                <tr>
-                                    <th className="px-4 py-3 text-left text-sm font-semibold">
-                                        #
-                                    </th>
-                                    <th className="px-4 py-3 text-left text-sm font-semibold">
-                                        Name
-                                    </th>
-                                    <th className="px-4 py-3 text-left text-sm font-semibold">
-                                        Email
-                                    </th>
-                                    <th className="px-4 py-3 text-left text-sm font-semibold">
-                                        Phone
-                                    </th>
-                                    <th className="px-4 py-3 text-left text-sm font-semibold">
-                                        Message
-                                    </th>
-                                    <th className="px-4 py-3 text-left text-sm font-semibold">
-                                        Date
-                                    </th>
-                                    <th className="px-4 py-3 text-center text-sm font-semibold">
-                                        Action
-                                    </th>
-                                </tr>
-                            </thead>
-
-                            <tbody>
-                                {contacts.map((contact, index) => (
-                                    <tr
-                                        key={contact._id}
-                                        className="border-t hover:bg-gray-50 transition"
-                                    >
-                                        <td className="px-4 py-3 text-sm">
-                                            {index + 1}
-                                        </td>
-                                        <td className="px-4 py-3 text-sm font-medium">
-                                            {contact.name}
-                                        </td>
-                                        <td className="px-4 py-3 text-sm">
-                                            {contact.email}
-                                        </td>
-                                        <td className="px-4 py-3 text-sm">
-                                            {contact.phone}
-                                        </td>
-                                        <td className="px-4 py-3 text-sm max-w-xs truncate">
-                                            {contact.message}
-                                        </td>
-                                        <td className="px-4 py-3 text-sm">
-                                            {new Date(
-                                                contact.createdAt
-                                            ).toLocaleDateString()}
-                                        </td>
-                                        <td className="px-4 py-3 text-center">
-                                            <button
-                                                onClick={() =>
-                                                    handleDelete(contact._id)
-                                                }
-                                                className="bg-red-500 text-white px-3 py-1 rounded-lg text-sm hover:bg-red-600 transition"
-                                            >
-                                                Delete
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
-            </div>
+      {loading ? (
+        <div className="space-y-3">{[...Array(5)].map((_, i) => <div key={i} className="skeleton h-20 rounded-2xl" />)}</div>
+      ) : contacts.length === 0 ? (
+        <div className="text-center py-20 rounded-2xl" style={{ border: '1px dashed var(--border)' }}>
+          <Inbox size={40} style={{ color: 'var(--text-3)', margin: '0 auto 1rem' }} />
+          <p style={{ color: 'var(--text-3)', fontFamily: 'var(--font-display)' }}>No messages yet</p>
         </div>
-    );
-};
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
+          <div className="lg:col-span-2 space-y-2">
+            {contacts.map((c, i) => (
+              <motion.button key={i} onClick={() => setSelected(c)}
+                initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * .04 }}
+                className="w-full text-left p-4 rounded-2xl border transition"
+                style={{ background: selected === c ? 'var(--teal-bg)' : 'var(--surface)', borderColor: selected === c ? 'var(--teal-border)' : 'var(--border)', boxShadow: selected === c ? 'var(--sh-teal)' : 'var(--sh-sm)' }}>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold grad-bg" style={{ color: 'var(--bg)' }}>
+                    {c.name?.[0]?.toUpperCase()}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p style={{ fontSize: '.85rem', fontWeight: 800, color: 'var(--text)', fontFamily: 'var(--font-display)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</p>
+                    <p style={{ fontSize: '.72rem', color: 'var(--text-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.email}</p>
+                  </div>
+                  <p style={{ fontSize: '.68rem', color: 'var(--text-3)', flexShrink: 0 }}>{new Date(c.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</p>
+                </div>
+                <p style={{ fontSize: '.82rem', color: 'var(--text-2)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{c.message}</p>
+              </motion.button>
+            ))}
+          </div>
 
-export default AdminContact;
+          <div className="lg:col-span-3">
+            {selected ? (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                className="rounded-2xl p-6 h-full"
+                style={{ background: 'var(--surface)', border: '1px solid var(--border-2)', boxShadow: 'var(--sh-md)' }}>
+                <div className="flex items-center gap-4 mb-6 pb-6 border-b" style={{ borderColor: 'var(--border)' }}>
+                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-lg font-bold grad-bg" style={{ color: 'var(--bg)', boxShadow: 'var(--sh-teal)' }}>
+                    {selected.name?.[0]?.toUpperCase()}
+                  </div>
+                  <div>
+                    <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, color: 'var(--text)', fontSize: '1.1rem' }}>{selected.name}</h3>
+                    <p style={{ color: 'var(--text-3)', fontSize: '.85rem' }}>{selected.email}</p>
+                    {selected.phone && <p style={{ color: 'var(--text-3)', fontSize: '.85rem' }}>{selected.phone}</p>}
+                  </div>
+                  <p className="ml-auto" style={{ fontSize: '.78rem', color: 'var(--text-3)' }}>{new Date(selected.createdAt).toLocaleString()}</p>
+                </div>
+                <p style={{ color: 'var(--text)', lineHeight: 1.75, fontSize: '1rem' }}>{selected.message}</p>
+                <div className="mt-6 pt-6 border-t" style={{ borderColor: 'var(--border)' }}>
+                  <a href={`mailto:${selected.email}`} className="btn-primary" style={{ fontSize: '.875rem' }}>
+                    <Mail size={14} /> Reply via Email
+                  </a>
+                </div>
+              </motion.div>
+            ) : (
+              <div className="rounded-2xl h-64 flex items-center justify-center" style={{ border: '1px dashed var(--border)' }}>
+                <p style={{ color: 'var(--text-3)', fontSize: '.875rem', fontFamily: 'var(--font-display)' }}>Select a message to read</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
